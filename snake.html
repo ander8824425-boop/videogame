@@ -28,6 +28,45 @@
     #ov button:hover{background:#0f01}
     .bm{border-color:#444!important;color:#555!important;font-size:10px!important;padding:6px 14px!important}
     .bm:hover{color:#888!important;border-color:#888!important}
+
+    /* ── Responsive canvas scaling ── */
+    #wrap { transform-origin: top center; }
+
+    /* ── D-pad touch controls ── */
+    #dpad {
+      display: none;
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 160px;
+      height: 160px;
+      z-index: 100;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .dp-btn {
+      position: absolute;
+      width: 52px; height: 52px;
+      background: rgba(0,255,0,0.12);
+      border: 2px solid rgba(0,255,0,0.4);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      color: #0f0;
+      touch-action: none;
+      cursor: pointer;
+    }
+    .dp-btn:active { background: rgba(0,255,0,0.3); }
+    #dp-up    { top: 0;    left: 54px; }
+    #dp-down  { bottom: 0; left: 54px; }
+    #dp-left  { top: 54px; left: 0;   }
+    #dp-right { top: 54px; right: 0;  }
+
+    @media (max-width: 540px) {
+      #dpad { display: block; }
+      body  { justify-content: flex-start; padding-top: 4px; }
+    }
   </style>
 </head>
 <body>
@@ -46,6 +85,14 @@
     <button id="startBtn">▶ INICIAR</button>
     <button class="bm" onclick="location.href='index.html'">◀ MENÚ PRINCIPAL</button>
   </div>
+</div>
+
+<!-- Mobile D-pad -->
+<div id="dpad">
+  <div class="dp-btn" id="dp-up">▲</div>
+  <div class="dp-btn" id="dp-left">◀</div>
+  <div class="dp-btn" id="dp-right">▶</div>
+  <div class="dp-btn" id="dp-down">▼</div>
 </div>
 <script>
 const COLS=25, ROWS=25, T=20;
@@ -347,6 +394,44 @@ dir={x:1,y:0};
 food={x:15,y:10};
 powerup=null;gem=null;particles=[];running=false;
 draw();
+
+// ── Responsive canvas scaling ─────────────────────────────
+function scaleGame() {
+  const wrap = document.getElementById('wrap');
+  const hud  = document.getElementById('hud');
+  const hudH = hud.getBoundingClientRect().height + 12;
+  const availW = window.innerWidth;
+  const availH = window.innerHeight - hudH;
+  const scaleX = availW / CW;
+  const scaleY = availH / CH;
+  const scale = Math.min(scaleX, scaleY, 1);
+  wrap.style.transform = `scale(${scale})`;
+  wrap.style.marginLeft = `${(availW - CW * scale) / 2}px`;
+}
+window.addEventListener('resize', scaleGame);
+scaleGame();
+
+// ── D-pad touch controls ──────────────────────────────────
+(function() {
+  const dirMap = {
+    'dp-up':    {x:0,  y:-1},
+    'dp-down':  {x:0,  y:1},
+    'dp-left':  {x:-1, y:0},
+    'dp-right': {x:1,  y:0}
+  };
+  Object.keys(dirMap).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const handler = e => {
+      e.preventDefault();
+      const d = dirMap[id];
+      if (d.x !== -dir.x || d.y !== -dir.y) nextDir = d;
+    };
+    el.addEventListener('touchstart', handler, { passive: false });
+    el.addEventListener('mousedown',  handler);
+  });
+})();
+
 </script>
 </body>
 </html>
