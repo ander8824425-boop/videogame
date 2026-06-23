@@ -61,10 +61,55 @@
     /* ── Responsive ── */
     #wrap{transform-origin:top center;}
     @media(max-width:660px){body{justify-content:flex-start;padding-top:8px;}}
+
+    /* ── Mobile shoot button ── */
+    #shootTapBtn {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: rgba(255,140,0,0.15);
+      border: 3px solid #f80;
+      color: #f80;
+      font-size: 32px;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 18px rgba(255,140,0,0.4);
+      z-index: 200;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #shootTapBtn:active { background: rgba(255,140,0,0.35); }
+    @media (max-width: 700px) {
+      #shootTapBtn { display: flex; }
+    }
+
+    /* ── Mobile crosshair hint ── */
+    #mobileDuckHint {
+      display: none;
+      position: fixed;
+      bottom: 120px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 7px;
+      color: rgba(255,140,0,0.5);
+      letter-spacing: 1px;
+      z-index: 200;
+      pointer-events: none;
+    }
+    @media (max-width: 700px) {
+      #mobileDuckHint { display: block; }
+    }
   </style>
 </head>
 <body>
 <button id="backBtn" onclick="location.href='index.html'">◀ MENÚ</button>
+<div id="shootTapBtn">🎯</div>
+<div id="mobileDuckHint">TOCA EL PATO PARA DISPARAR</div>
 <div id="wrap">
   <canvas id="c"></canvas>
   <div id="ov">
@@ -951,6 +996,18 @@ roundState='idle'; muzzleFlash=0; reloading=false; reloadTimer=0;
 score=0; round=1; ducksKilled=0; ducksEscaped=0; ammo=MAX_AMMO;
 screenShake={x:0,y:0,t:0};
 gameLoop();
+
+// ── Mobile shoot button ────────────────────────────────────
+(function() {
+  const btn = document.getElementById('shootTapBtn');
+  if (!btn) return;
+  // Tap the button → shoot at current crosshair position
+  btn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    shoot(mouseX, mouseY);
+  }, { passive: false });
+  btn.addEventListener('click', () => shoot(mouseX, mouseY));
+})();
 </script>
 </body>
 </html>

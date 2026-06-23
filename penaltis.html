@@ -37,6 +37,58 @@
     .btn.red{background:#f44;color:#fff;}
     #instructions{position:relative;z-index:1;margin-top:12px;font-size:7px;color:#444;
       text-align:center;line-height:2;max-width:600px;padding:0 16px 32px;}
+
+    /* ── Responsive scaling ── */
+    #wrap { transform-origin: top center; }
+    @media (max-width: 660px) {
+      body { justify-content: flex-start; }
+      #instructions { display: none; }
+    }
+
+    /* ── Mobile shoot button (shown only on touch devices) ── */
+    #shootBtn {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(248, 128, 0, 0.2);
+      border: 3px solid #f80;
+      color: #f80;
+      font-size: 30px;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(248,128,0,0.4);
+      z-index: 200;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+    }
+    #shootBtn:active { background: rgba(248,128,0,0.4); }
+    @media (max-width: 760px) {
+      #shootBtn { display: flex; }
+    }
+
+    /* ── Mobile aim indicator ── */
+    #mobileAimHint {
+      display: none;
+      position: fixed;
+      bottom: 118px;
+      right: 0;
+      left: 0;
+      text-align: center;
+      font-size: 7px;
+      color: #f806;
+      letter-spacing: 1px;
+      z-index: 200;
+      pointer-events: none;
+    }
+    @media (max-width: 760px) {
+      #mobileAimHint { display: block; }
+    }
   </style>
 </head>
 <body>
@@ -75,6 +127,10 @@
   HAZ CLIC EN LA PORTERÍA PARA APUNTAR Y CHUTAR<br>
   EL PORTERO SE LANZA AL AZAR — BUSCA EL HUECO LIBRE
 </div>
+
+<!-- Mobile shoot button -->
+<div id="shootBtn">⚽</div>
+<div id="mobileAimHint">TOCA LA PORTERÍA · LUEGO ⚽</div>
 <script>
 // ═══════════════════════════════════════════════
 //  CONFIG  — portería más pequeña, centrada
@@ -671,6 +727,88 @@ function loop(ts){
 }
 
 requestAnimationFrame(loop);
+
+// ── Responsive canvas scaling ──────────────────────────────
+function scaleGame() {
+  const wrap  = document.getElementById('wrap');
+  const hud   = document.getElementById('hud');
+  const nav   = document.querySelector('nav');
+  const hudH  = (hud  ? hud.getBoundingClientRect().height  : 0) + 14;
+  const navH  = (nav  ? nav.getBoundingClientRect().height  : 0);
+  const availW = window.innerWidth;
+  const availH = window.innerHeight - navH - hudH - 16;
+  const scale  = Math.min(availW / CW, availH / CH, 1);
+  wrap.style.transform = `scale(${scale})`;
+  wrap.style.marginLeft = `${(availW - CW * scale) / 2}px`;
+  wrap.style.marginTop  = '0px';
+}
+window.addEventListener('resize', scaleGame);
+scaleGame();
+
+// ── Touch / mobile input ───────────────────────────────────
+function toCanvasCoords(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (clientX - r.left) * (CW / r.width),
+    y: (clientY - r.top)  * (CH / r.height)
+  };
+}
+
+let lastAimX = null, lastAimY = null;
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (state !== 'aiming') return;
+  const t = e.touches[0];
+  const p = toCanvasCoords(t.clientX, t.clientY);
+  if (inGoal(p.x, p.y)) {
+    aimX = p.x; aimY = p.y; aimVis = true;
+    lastAimX = p.x; lastAimY = p.y;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (state !== 'aiming') return;
+  const t = e.touches[0];
+  const p = toCanvasCoords(t.clientX, t.clientY);
+  if (inGoal(p.x, p.y)) {
+    aimX = p.x; aimY = p.y; aimVis = true;
+    lastAimX = p.x; lastAimY = p.y;
+    canvas.style.cursor = 'crosshair';
+  } else {
+    aimVis = false;
+    canvas.style.cursor = 'default';
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  if (state !== 'aiming') return;
+  const t = e.changedTouches[0];
+  const p = toCanvasCoords(t.clientX, t.clientY);
+  if (inGoal(p.x, p.y)) {
+    startKickAnim(p.x, p.y);
+  } else if (lastAimX !== null) {
+    startKickAnim(lastAimX, lastAimY);
+  }
+  lastAimX = null; lastAimY = null;
+}, { passive: false });
+
+const shootBtn = document.getElementById('shootBtn');
+if (shootBtn) {
+  shootBtn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (state !== 'aiming' || lastAimX === null) return;
+    startKickAnim(lastAimX, lastAimY);
+    lastAimX = null; lastAimY = null;
+  }, { passive: false });
+  shootBtn.addEventListener('click', () => {
+    if (state !== 'aiming' || lastAimX === null) return;
+    startKickAnim(lastAimX, lastAimY);
+    lastAimX = null; lastAimY = null;
+  });
+}
 </script>
 </body>
 </html>
